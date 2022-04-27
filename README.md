@@ -5,9 +5,8 @@
 Geosea is an open tool box for seafloor geodetic data processing of dircet-path ranging. It supplies a variety of functions to process acoustic baselines and analyze ground movement. 
 
 
-
 # Dependencies
-#
+
 
 sciPy: miscellaneous statistical functions
 

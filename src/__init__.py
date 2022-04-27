@@ -24,10 +24,7 @@ from .proc_bsl import *
 from .search_df import *
 
 from .range_sv import *
-from .sw import *
 from .replace import *
-
-
 from .vert_bsl import *
 from .bsl import *
 
