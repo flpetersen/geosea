@@ -1,0 +1,33 @@
+### Gitignore ###
+
+# Binaries for programs and plugins
+*.so
+*.dylib
+pcp$
+
+
+pcp
+
+dist
+
+
+### macOS ###
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+
+.ba
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
