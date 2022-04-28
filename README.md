@@ -1,4 +1,6 @@
 
+[![PyPI - License](https://img.shields.io/pypi/l/geosea?style=plastic)
+
 # Project Description
 
 
