@@ -4,17 +4,19 @@ GeoSEA read CSV module.
 To Do:
 
 
-- implement SQL database to store the station and baseline data properly. 
-- enhance ps.DataFrames manipulation
+30 Aptil 2022 - implement SQL database to store the station and baseline data properly. 
+28 April 2022 - ps.DataFrames manipulation has been enhanced. New pd.DataFrame structure!!
+- automatically read SQL Databases
+
 
 """
 
 import glob # Unix style pathname pattern expansion
 
 import numpy as np # fundamental package for scientific computing
-
 import pandas as pd # Pandas toolbox
-from obspy.geodetics.base import gps2dist_azimuth
+from pathlib import Path
+
 
 ### Import GeoSEA Modules ###
 
@@ -24,6 +26,9 @@ from .read_id import read_id
 from .utils.extract_df import extract_df
 from .utils.sw import sv_wilson
 from .utils.sw import sv_leroy
+
+from .utils.sql import df2sql
+from .utils.sql import sql2df
 
 # Global date format for export
 GMT_DATEFORMAT = '%Y-%m-%dT%H:%M'
@@ -44,11 +49,12 @@ class Network(object):
 
 
 
-def read(sal=None,phi=None,starttime=None, endtime=None, pathname=None, writefile=True, writevariable=True, dateformat=None):
-    """ Reads data from *csv files.
+def read(network_name, sal=None,phi=None,starttime=None, endtime=None, pathname=None):
+    """ Reads data from *csv files and stores seafloor geodetic network data in a SQL Database (*.sqlite) 
 
     Note that the *csv files have to be unique for each station!
     It needs:
+
     SAL (optional) ... constant salinity value in PSU to calculate the theoretical
         sound velocity
     phi (optional) ... if phi is not None the Leroy formular is used
@@ -64,19 +70,8 @@ def read(sal=None,phi=None,starttime=None, endtime=None, pathname=None, writefil
                                  GMT_DATEFORMAT = '%Y-%m-%dT%H:%M' (Default)
 
     It returns:
-    ID ... an 1-dim list with station IDs
-    st_series ... an 1-dim list with pandas.DataFrame with columns:
-        temperature ('hrt'), pressure ('prs'), sound speed ('ssp'), temperature
-        from pressure ('tpr'), inclinometer data ('pitch','roll'), battery ('bat','vlt')
-        and pages ('pag') with corresponding times of measurement for each beacon
-        (same order as items in ID)
-    bsl_series ... an 1-dim list with pandas.DataFrame with baseline
-        measurements: ID of other station ('range_ID'), traveltime ('range')
-        and turn around time ('TAT') with corresponding times of measurement
-        for each beacon (same order as items in ID)
-
-    It further writes human readable files for pressure, inclinometer
-    data, battery, and pages, respectively.
+    pd.DataFarme
+    
     """
 
     ID = []
@@ -87,13 +82,6 @@ def read(sal=None,phi=None,starttime=None, endtime=None, pathname=None, writefil
     if sal is None:
         sal = 32
 
-    if dateformat is None:
-        dateformat = GMT_DATEFORMAT
-
-    if dateformat == 'MATLAB_DATEFORMAT':
-        dateformat = MATLAB_DATEFORMAT
-
-
     ID = read_id(pathname=pathname)
     ifiles = glob.glob(pathname + 'Data_*_*_*.csv')
 
@@ -102,300 +90,69 @@ def read(sal=None,phi=None,starttime=None, endtime=None, pathname=None, writefil
 #-------------------------------------------------------------------------------
     st_series = []
     bsl_series = []
-
+    
     # pre-define column names (needed because of different number of columns
     # per row in input files)
-    my_cols = ["A","B","C","D","E","F","G","H","I","J","K"]
 
-    for j,station in enumerate(ID):
 
-        print('\nData Processing for Station: ' + station)
-        print('---------------------------------------------------------------------')
-        print('Open Files:')
 
-        # create empty pandas.DataFrame for storing of data from file
-        all_data = pd.DataFrame()
-        for i,data in enumerate(ifiles):
-            stationname = data.split('_', 3)
-            if station in stationname:
-                print(data)
-                # reads data from csv-file using pandas
-                # my_cols ... pre-defined column names
-                # skiprow=13 ... skips first 13 rows
-                # index_col=0 ... uses first column as index
-                # final dataframe has columns 'B'-'J' (0-9) and index column
-                # with ['PAG','BSL',...]
-                curfile = pd.read_csv(data,names=my_cols,skiprows=13,index_col=0,low_memory=False)
-                # append curfile to DataFrame, needs to be stored to all_data
-                # otherwise no permanent change
-                #all_data = all_data.append(curfile)
-                all_data = pd.concat([all_data, curfile])
-        #print curfile
-            # end if station in stationname:
-        print('   ')
-        # end for i,data in enumerate(ifiles):
+    if Path(pathname + network_name + '.sqlite').is_file():
 
-        # remove duplicates, again has to be stored to all_data otherwise no
-        # permanent change
-        all_data = all_data.drop_duplicates()
+        df = pd.DataFrame()
 
-        # transform date column 'B' to time format used by pandas
-        all_data['B'] = pd.to_datetime(all_data['B'])
+        df = sql2df(network_name, pathname)
 
-        if starttime is not None:
-            # remove all entries before starttime
-            all_data = all_data.loc[all_data['B'] >= starttime]
-        # end if starttime is not None:
-
-        if endtime is not None:
-            # remove all entries after endtime
-            all_data = all_data.loc[all_data['B'] <= endtime]
-        # end if endtime is not None:
-
-        ######## Sort Files to Sensor
-
-        # position of date in following column_lists
-        date_pos = 0
-
-        sv_fr = 0
-
-#-------------------------------------------------------------------------------
-#       Travel Time measurement
-#-------------------------------------------------------------------------------
-        index = 'BSL'
-        column_list = ['B','F','G','H']
-        # columns contain date, ID of other station, traveltime measurement in
-        # milliseconds and turn around time in milliseconds
-        label_list = ['date','range_ID','range','TAT']
-        # data types for columns except date
-        dtype = ['d','f','f']
-
-        df_bsl = extract_df(all_data,index,column_list,label_list,dtype,date_pos)
-
-        if writefile:
-            # writes data to file
-            df_bsl.to_csv( pathname + str(station) +'-'+ index+'.dat',sep='\t', header=True, date_format=dateformat)
-                
-#-------------------------------------------------------------------------------
-#       Sound speed and temperature for Fetch Stations
-#-------------------------------------------------------------------------------
-        if 'SVT' in all_data.index:
-            index = 'SVT'
-            print('SVT - Sound Speed and Temperature Sensor !')
-            column_list = ['B','F']
-            # columns contain date and sound speed measurement in metres per second
-            label_list = ['date','hrt']
-            # data types for columns except date
-            dtype = ['f','f']
-            df_svt = extract_df(all_data,index,column_list,label_list,dtype,date_pos)
+        return(df)
         
-            # removes sound speed measurements which are not in water
-            #df_svt = df_svt.loc[df_svt['SSP']!=9996.]
-            index = 'HRT'
-            if writefile:
-                # writes data to file
-                write2csv(df_svt, station, index, dateformat, pathname)
-            # end if writefile:
-        
-#-------------------------------------------------------------------------------
-#       Sound Speed
-#-------------------------------------------------------------------------------
-        if 'SSP' in all_data.index:
-            index = 'SSP'
-            column_list = ['B','E']
-            # columns contain date and sound speed measurement in metres per second
-            label_list = ['date','ssp']
-            # data types for columns except date
-            dtype = ['f']
-            df_ssp = extract_df(all_data,index,column_list,label_list,dtype,date_pos)
-
-            # removes sound speed measurements which are not in water
-            df_ssp = df_ssp.loc[df_ssp['ssp']!=9996.]
-
-            if writefile:
-                write2csv(df_ssp, station, index, dateformat, pathname)
-
-            
-#-------------------------------------------------------------------------------
-#       Temperature
-#-------------------------------------------------------------------------------
-        if 'TMP' in all_data.index:
-            index = 'TMP'
-            # columns contain date and temperature in degree Celsius
-            label_list = ['date','tmp']
-            df_tp = extract_df(all_data,index,column_list,label_list,dtype,date_pos)
-        
-        if 'HRT' in all_data.index:
-            index = 'HRT'
-            column_list = ['B','E']
-            # same label_list as 'TMP'
-            label_list = ['date','hrt']
-            df_hrt = extract_df(all_data,index,column_list,label_list,dtype,date_pos)
-
-            if writefile:
-                write2csv(df_hrt, station, index, dateformat, pathname)
-
-#-------------------------------------------------------------------------------
-#       Pressure and Temperature data
-#-------------------------------------------------------------------------------
-        index = 'PRS'
-        column_list = ['B','E']
-        column_list2 = ['B','F']
-        # columns contain date and pressure in kPa
-        label_list = ['date','prs']
-        label_list2 = ['date','tpr']
-        df_tpr = extract_df(all_data,index,column_list2,label_list2,dtype,date_pos)
-        df_prs = extract_df(all_data,index,column_list,label_list,dtype,date_pos)
-        dtype = ['f']
-
-        if writefile:
-            write2csv(df_prs, station, index, dateformat, pathname)
-            write2csv(df_tpr, station, index, dateformat, pathname)
-
-#-------------------------------------------------------------------------------
-#       Recorded pages in Bytes
-#-------------------------------------------------------------------------------
-        index = 'PAG'
-        column_list = ['B','E']
-        # columns contain date and page number
-        label_list = ['date','pag']
-        #  data types for columns except date
-        dtype = ['d']
-        df_pag = extract_df(all_data,index,column_list,label_list,dtype,date_pos)
-
-        if writefile:
-            # writes data to file
-            write2csv(df_pag, station, index, dateformat, pathname)
-
-        # tranform page numbers to Bytes
-        df_pag['size'] = df_pag['pag']*512/1000
-
-        # total size of downloaded data in kB last entry in column 'pag'
-        pag_size = df_pag['size'].iloc[-1]/1024
-
-#-------------------------------------------------------------------------------
-#       Battery Power
-#-------------------------------------------------------------------------------
-        index = 'BAT'
-        column_list = ['B','E','F']
-        # columns contain date, battery consumption in per cent and voltage in
-        # volt
-        label_list = ['date','bat','vlt']
-        #  data types for columns except date
-        dtype = ['d','f']
-        df_bat = extract_df(all_data,index,column_list,label_list,dtype,date_pos)
-
-        if writefile:
-            write2csv(df_bat, station,index,dateformat,pathname)
-
-#-------------------------------------------------------------------------------
-#       Inclinometer
-#-------------------------------------------------------------------------------
-        index = 'INC'
-        # columns contain date, pitch and roll in radians
-        label_list = ['date','pitch','roll']
-        #  data types for columns except date
-        dtype = ['f','f']
-        df_inc = extract_df(all_data,index,column_list,label_list,dtype,date_pos)
-
-        # transform radians to degrees
-        df_inc['pitch'] = df_inc['pitch']*180/np.pi
-        df_inc['roll'] = df_inc['roll']*180/np.pi
-
-        if writefile:
-            # writes data to file
-            df_inc.to_csv( pathname + str(station) +'-'+ index+'.dat',sep='\t', header=True, date_format=dateformat)
-            df_inc = read_data(str(station),'INC', pathname=pathname)
-            df_inc = df_inc.reset_index().drop_duplicates(subset='date').set_index('date')
-            df_inc.to_csv( pathname + str(station) +'-'+ index+'.dat',sep='\t', header=True, date_format=dateformat)
-        # end writefile:
-
-        # Standard output
-        print('Found: ' + str(len(df_bsl)) + '\t Baseline Records')
-        print('Found: ' + str(len(df_prs)) + '\t Pressure Records')
-        if sv_fr == 1:
-            print('Found: ' + str(len(df_svt)) + '\t Sound Speed Records')
-            print('Found: ' + str(len(df_svt)) + '\t Temperature Records')
-        else:
-            print('Found: ' + str(len(df_ssp)) + '\t Sound Speed Records')
-            print('Found: ' + str(len(df_hrt)) + '\t HiRes Temperature Records')
-        print('Found: ' + str(len(df_inc)) + '\t Inclination Records')
-        print('Found: ' + str(len(df_bat)) + '\t Battery Records')
-        print('Found: ' + str(pag_size) + '\t MB Data')
-#-------------------------------------------------------------------------------
-#       Theoretical Sound Velocity
-#-------------------------------------------------------------------------------
-        
-    # concatenate pandas data formats in one data format for temperature,
-        # pressure, sound speed, inclinometer, battery, and pages
-        if sv_fr == 1:
-            df = pd.concat([df_svt, df_prs, df_inc, df_bat, df_pag], axis=1)
-        else:
-            df = pd.concat([df_ssp, df_prs, df_hrt, df_tpr, df_inc, df_bat, df_pag], axis=1)
-    # append this to data formats of other stations
-        
-        df_wilson = sv_wilson(df,int(sal))
-                
-        if writefile:
-            # writes data to file
-            df_wilson['sv_hrt'].to_csv( pathname + str(station) +'-'+ 'SV_HRT' + '.dat',sep='\t', header=True, date_format=dateformat)
-            df_sv_hrt = read_data(str(station),'SV_HRT', pathname=pathname)
-            df_sv_hrt = df_sv_hrt.reset_index().drop_duplicates(subset='date').set_index('date')
-            df_sv_hrt.to_csv( pathname + str(station) +'-'+ 'SV_HRT'+'.dat',sep='\t', header=True, date_format=dateformat)
-            
-            df_wilson['sv_tpr'].to_csv( pathname + str(station) +'-'+ 'SV_TPR' + '.dat',sep='\t', header=True, date_format=dateformat)
-            df_sv_tpr = read_data(str(station),'SV_TPR', pathname=pathname)
-            df_sv_tpr = df_sv_tpr.reset_index().drop_duplicates(subset='date').set_index('date')
-            df_sv_tpr.to_csv( pathname + str(station) +'-'+ 'SV_TPR'+'.dat',sep='\t', header=True, date_format=dateformat)
-            
-            df_wilson['sal'].to_csv( pathname + str(station) +'-'+ 'SAL' + '.dat',sep='\t', header=True, date_format=dateformat)
-            df_sal = read_data(str(station),'sal', pathname=pathname)
-            df_sal = df_sal.reset_index().drop_duplicates(subset='date').set_index('date')
-            df_sal.to_csv( pathname + str(station) +'-'+ 'sal'+'.dat',sep='\t', header=True, date_format=dateformat)
-            
-        if phi is not None:
-            df = sv_leroy(df,sal,phi)
-            
-            if writefile:
-                index = 'SVL_HRT'
-                write2csv(df['sv_hrt'], station, index, dateformat, pathname)
-            
-                index = 'SV_TPR'
-                write2csv(df['sv_tpr'], station, index, dateformat, pathname)
-
-        
-        if sv_fr == 1:
-            df = pd.concat([df_svt, df_prs, df_inc, df_bat, df_pag], axis=1)
-        else:
-            df = pd.concat([df_ssp, df_prs, df_hrt, df_tpr, df_inc, df_bat, df_pag, df_sv_hrt, df_sv_tpr, df_sal], axis=1)
-        
-        
-        st_series.append(df)
-
-        # baseline data not included in pandas.concat as it holds multiple
-        # entries per day for different baselines
-        bsl_series.append(df_bsl)
-    # end for j,station in enumerate(ID):
-
-    if not writefile:
-        print('\n')
-        print('Data has not been stored in files!')
-    # end if not writefile:
-
-    if writevariable:
-        return(ID,st_series,bsl_series)
     else:
-        print('Data has not been stored in files!')
-        return()
-        
+        df = pd.DataFrame()
+        for station in ID:
+            
+            print('\nData Processing for Station: ' + station)
+            print('---------------------------------------------------------------------')
+            print('Open Files:')
 
-# Function to write Dataframe to csv with specific name
-def write2csv (df, station, index, dateformat, pathname):
-                
-        df.to_csv( pathname + str(station) +'-'+ index+'.dat',sep='\t', header=True, date_format=dateformat)
-        df = read_data(str(station),'BAT', pathname=pathname)
-        df = df.reset_index().drop_duplicates(subset='date').set_index('date')
-        df.to_csv( pathname + str(station) +'-'+ index+'.dat',sep='\t', header=True, date_format=dateformat)
+            # Initial Pandas DataFrame
+            
+            # create empty pandas.DataFrame for storing of data from file
+            all_data = pd.DataFrame()
+            
+            for data in ifiles:
+                stationname = data.split('_', 3)
+                if station in stationname:
+                    print(data)
+
+                    # reads data from csv-file using pandas
+                    curfile = pd.read_csv(data,names=list('abcdefghijk'),skiprows=13,low_memory=False)
+                    curfile['d']=station
+
+                    # concatenate all csv files into one DataFrame
+                    df = pd.concat([df, curfile.drop('c',axis=1).rename(columns={'a':'sensor','d':'node_id','b':'rec_time','e':'value_1','f':'value_2','g':'tt','h':'tat'})])
+
+                    
+                    
+                    df  = df[df['sensor'].ne('SNS') & df['sensor'].ne('BAS')& df['sensor'].ne('SLG')& df['sensor'].ne('TIM')].drop(['i','j','k'],axis=1)
+
+            # Standard output
+            print('Found: ' + str(len(df[df['sensor'].eq('BSL') & df['node_id'].eq(station)])) + '\t Baseline Records')
+            print('Found: ' + str(len(df[df['sensor'].eq('PRS') & df['node_id'].eq(station)])) + '\t Pressure Records')
+            print('Found: ' + str(len(df[df['sensor'].eq('SSP') & df['node_id'].eq(station)])) + '\t Sound Speed Records')
+            print('Found: ' + str(len(df[df['sensor'].eq('HRT') & df['node_id'].eq(station)])) + '\t HiRes Temperature Records')
+            print('Found: ' + str(len(df[df['sensor'].eq('INC') & df['node_id'].eq(station)])) + '\t Inclination Records')
+            print('Found: ' + str(len(df[df['sensor'].eq('BAT') & df['node_id'].eq(station)])) + '\t Battery Records')
+            print('Found: ' + str(len(df[df['sensor'].eq('PAG') & df['node_id'].eq(station)])) + '\t MB Data')
+        # convert record time to datetime format
+        df['rec_time'] = pd.to_datetime(df['rec_time'])
+        # set multiindex to station ID and record time
+        df.set_index(['node_id', 'rec_time'], inplace=True)
+
+        # store DF in SQL database
+
+        df2sql(df, network_name, pathname)
+    
+        return(df)
+
+    # import DataFrame into a SQL Database
 
 
 

@@ -27,6 +27,7 @@ from .range_sv import *
 from .replace import *
 from .vert_bsl import *
 from .bsl import *
+from .bsl_test import *
 
 from .compare_df import *
 

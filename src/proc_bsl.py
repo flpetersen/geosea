@@ -2,11 +2,11 @@
 #       Complete processing
 #-------------------------------------------------------------------------------
 
-from .read import *
+from .read.read import *
 from .vert_bsl import *
 from .bsl import *
 
-from .sw import *
+from .read.utils.sw import *
 
 def proc_bsl (SAL,pathname=None,starttime=None, endtime=None,outlier_flag=None,writefile=True,dateformat=None):
     """ Complete Baseline processing of GeoSEA Raw data.

@@ -2,8 +2,8 @@
 #       Utils for Baseline calculation
 #-------------------------------------------------------------------------------
 import pandas as pd
-from .read_data import *
-from .sw import *
+from .read.read_data import *
+from .read.utils.sw import *
 
 ### Global Variables ###
 GMT_DATEFORMAT = '%Y-%m-%dT%H:%M'

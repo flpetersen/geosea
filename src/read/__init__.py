@@ -27,6 +27,7 @@ from .read_bsl import *
 from .read_meta import *
 from .read_tides import *
 from .read_airpressure import *
+from .utils import sql
 
 global GMT_DATEFORMAT # Output date format
 global IN_DATEFORMAT # Input date format

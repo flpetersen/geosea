@@ -4,8 +4,8 @@
 import pandas as pd
 import numpy as np
 
-from .read_data import *
-from .sw import *
+from .read.read_data import *
+from .read.utils.sw import *
 
 
 ### Global Variables ###
@@ -23,8 +23,7 @@ def correct_inc (ID,pathname=None,writefile=True,dateformat=None,starttime=None,
     df_inc = read_data(ID,'inc',pathname=pathname)
     
     df_tilt = np.sqrt((df_inc.roll**2)+(df_inc.pitch**2)).name
-    df_tilt.
-    
+       
     polynomial  = np.polyfit(df_tilt.values,list(range(1,df_tilt.size+1)),3)
     
     poly_curve = np.polyval(polynomial,list(range(1,df_tilt.size+1)))

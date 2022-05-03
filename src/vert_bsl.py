@@ -4,9 +4,9 @@
 
 import pandas as pd
 
-from .read_id import *
-from .read_data import *
-from .read_tides import *
+from .read.read_id import *
+from .read.read_data import *
+from .read.read_tides import *
 
 GMT_DATEFORMAT = '%Y-%m-%dT%H:%M'
 MATLAB_DATEFORMAT = '%Y-%m-%d %H:%M'

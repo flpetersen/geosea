@@ -3,7 +3,7 @@
 #-------------------------------------------------------------------------------
 
 import pandas as pd
-from .read_data import *
+from .read.read_data import *
 
 GMT_DATEFORMAT = '%Y-%m-%dT%H:%M'
 IN_DATEFORMAT = '%Y/%m/%d %H:%M:%S'

@@ -1,53 +1,9 @@
 #Define parameters
 
 import numpy as np
+from numpy.linalg import inv
     
 def nadjust2D(m = None,xinp = None,std_M = None,num_transp = None,num_baselines = None,id = None,bsl_reference = None): 
-    #  syms x1 y1 x2 y2 x3 y3 x4 y4 x5 y5 x6 y6 x7 y7 x8 y8 x9 y9 x10 y10 x11 y11 x12 y12 x13 y13 x14 y14 x15 y15 x16 y16
-    
-    # ## parametric equations
-    
-    # if num_transp == 5
-# d1=sqrt((x2-x1)^2+(y2-y1)^2);
-# d2=sqrt((x3-x1)^2+(y3-y1)^2);
-# d3=sqrt((x4-x1)^2+(y4-y1)^2);
-# d4=sqrt((x5-x1)^2+(y5-y1)^2);
-# d5=sqrt((x3-x2)^2+(y3-y2)^2);
-# d6=sqrt((x4-x2)^2+(y4-y2)^2);
-# d7=sqrt((x5-x2)^2+(y5-y2)^2);
-# d8=sqrt((x4-x3)^2+(y4-y3)^2);
-# d9=sqrt((x5-x3)^2+(y5-y3)^2);
-# d10=sqrt((x5-x4)^2+(y5-y4)^2);
-    
-    # ## Jacobi matrix
-    
-    #  J = jacobian([d1;d2;d3;d4;d5;d6;d7;d8;d9;d10],[ x1 y1 x2 y2 x3 y3 x4 y4 x5 y5 ]);
-    
-    #  x1 = xinp(1);
-#  y1 = xinp(2);
-    
-    #  x2 = xinp(3);
-#  y2 = xinp(4);
-    
-    #  x3 = xinp(5);
-#  y3 = xinp(6);
-    
-    #  x4 = xinp(7);
-#  y4 = xinp(8);
-    
-    #  x5 = xinp(9);
-#  y5 = xinp(10);
-    
-    #  ## Inversion of covariance matrix tp wheight matrix
-# C=diag([0.005^2 0.005^2 0.005^2 0.005^2 0.005^2 0.005^2 0.005^2 0.005^2 0.005^2 0.005^2 ]);
-    
-    # ## Array of Baselines
-# L=[m(1);m(2);m(3);m(4);m(5);m(6);m(7);m(8);m(9);m(10)];
-# L0 = eval([d1;d2;d3;d4;d5;d6;d7;d8;d9;d10]);
-    
-    # ## Design Matrix
-# G = [1 0 ;0 1 ; 1 0 ;0 1 ; 1 0 ; 0 1 ; 1 0 ; 0 1 ; 1 0 ; 0 1  ];
-# end
     
     bx = sym('x',np.array([1,num_transp]))
     by = sym('y',np.array([1,num_transp]))
@@ -55,11 +11,10 @@ def nadjust2D(m = None,xinp = None,std_M = None,num_transp = None,num_baselines 
     pp = 0
     n = 0
     g = 0
-    C_weight = []
-    j_inp = []
-    xy = []
-    G = []
-    L = []
+
+
+    C_weight, j_inp, xy, G, L = list()
+
     for i in np.arange(1,num_transp+1).reshape(-1):
         G = np.array([[G],[1,0],[0,1]])
         j_inp = np.array([j_inp,bx(i),by(i)])
@@ -87,7 +42,7 @@ def nadjust2D(m = None,xinp = None,std_M = None,num_transp = None,num_baselines 
         for j in np.arange(1,num_transp+1).reshape(-1):
             if j != i:
                 pp = (np.array([pp,i]))
-                if ismember(j,pp):
+                if j in pp:
                     continue
                 else:
                     g = g + 1
@@ -98,7 +53,7 @@ def nadjust2D(m = None,xinp = None,std_M = None,num_transp = None,num_baselines 
         k = k + 2
     
     d = np.transpose(d)
-    C = diag(np.array([C_weight]))
+    C = np.diag(np.array([C_weight]))
     ## Input Coordinates
     
     if num_transp >= 5:
@@ -159,6 +114,7 @@ def nadjust2D(m = None,xinp = None,std_M = None,num_transp = None,num_baselines 
     
     x0 = np.transpose(xinp)
     A = eval(J)
+    
     #C=diag([((th1/1000)*0.0028)^2 ((th2/1000)*0.0028)^2 ((th3/1000)*0.0028)^2 ((th4/1000)*0.0028)^2 ((th5/1000)*0.0028)^2 ((th6/1000)*0.0028)^2 ((th7/1000)*0.0028)^2 ((th8/1000)*0.0028)^2 ((th9/1000)*0.0028)^2 ((th10/1000)*0.0028)^2 ]);
     
     #C=diag(std_M);
@@ -169,16 +125,19 @@ def nadjust2D(m = None,xinp = None,std_M = None,num_transp = None,num_baselines 
     N1 = np.transpose(A) * P * A + G * np.transpose(G)
     ## x-y Translation
     d = - inv(N1) * np.transpose(A) * P * A * inv(N1) * u
+
     ## New Coordinates
     xa = x0 + d
+
     ## Cofactor Matrix of adjused coordinates
-#determine cofactor matrix Qx of adjusted parameters, residuals and aposteriori variance s02
+
+    #determine cofactor matrix Qx of adjusted parameters, residuals and aposteriori variance s02
     
     Qx = inv(N1) * np.transpose(A) * P * A * inv(N1)
     ## residuals
     v = A * d + w
     ## aposteriori variance S02
     s02 = np.transpose(v) * P * v / (2)
-    return xa,v,s02,d,P,C
+
+    return (xa,v,s02,d,P,C)
     
-    return xa,v,s02,d,P,C
