@@ -11,7 +11,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="geosea", # Replace with your own username
-    version="2022.1.2.2",
+    version="2022.1.2.3",
     author="Florian Petersen and Katrin Hannemann",
     author_email="florian.petersen@ifg.uni-kiel.de",
     description="A processing package for seafloor geodesy",
