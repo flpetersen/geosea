@@ -36,15 +36,20 @@ def read(sal=None,phi=None,starttime=None, endtime=None, pathname=None, writefil
     It needs:
     SAL (optional) ... constant salinity value in PSU to calculate the theoretical
         sound velocity
+
     phi (optional) ... if phi is not None the Leroy formular is used
     starttime (optional) ... no measurement before this time is used (format
         'YYYY-MM-DD hh:mm:ss')
+
     endtime (optional) ... no measurement after this time is used (format
         'YYYY-MM-DD hh:mm:ss')
+
     pathname (optional) ... location of input files (default .)
+
     writefile (optional) ... if True files containing all read-in parameters
         will be created in current directory, if False data will just be
         returned (default True)
+        
     dateformat = (optional) ... MATLAB_DATEFORMAT = '%Y-%m-%d %H:%M'
                                  GMT_DATEFORMAT = '%Y-%m-%dT%H:%M' (Default)
 

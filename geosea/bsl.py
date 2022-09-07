@@ -4,6 +4,8 @@
 
 import pandas as pd
 
+from geosea.plot_bsl import plot_bsl
+
 from .search_df import *
 from .read.utils.extract_df import extract_df
 from .calc import *
@@ -319,6 +321,8 @@ def bsl(ID=None, st_series=None, bsl_series=None, outlier_flag=False, pathname=N
         # end for j, beacon_2 in enumerate(ID):
 
     # end for i, beacon_1 in enumerate(ID):
+    #Plot all Baselines
+    plot_bsl()
 
     if outlier_flag == True:
         final_bsls = []
@@ -366,6 +370,9 @@ def bsl(ID=None, st_series=None, bsl_series=None, outlier_flag=False, pathname=N
                 # end if suffix is None:
             # end if writefile:
         # end for i in range(len(cal_bsl_series):
+
+        #Plot all Baselines
+        plot_bsl()
 
         if not writefile:
             print('\n')
