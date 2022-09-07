@@ -1,18 +1,21 @@
 Metadata-Version: 2.1
 Name: geosea
-Version: 2022.1.2.1
+Version: 2022.1.2.2
 Summary: A processing package for seafloor geodesy
 Home-page: https://github.com/flp-geo/geosea
 Author: Florian Petersen and Katrin Hannemann
-Author-email: florian.petersen@ifg.uni-kiel.de
-License: UNKNOWN
-Platform: UNKNOWN
+Author-email: "Dr. Florian Petersen" <florianpetersen@gmx.net>
+Project-URL: Homepage, https://github.com/flpetersen/geosea-app
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: OS Independent
-Requires-Python: >=3.6
+Requires-Python: >=3.7
 Description-Content-Type: text/markdown
 License-File: LICENSE.txt
+
+
+![PyPI - License](https://img.shields.io/pypi/l/geosea?style=plastic)
+![PyPI - Version](https://img.shields.io/pypi/v/geosea?style=plastic)
 
 
 # Project Description
@@ -21,9 +24,8 @@ License-File: LICENSE.txt
 Geosea is an open tool box for seafloor geodetic data processing of dircet-path ranging. It supplies a variety of functions to process acoustic baselines and analyze ground movement. 
 
 
-
 # Dependencies
-#
+
 
 sciPy: miscellaneous statistical functions
 
@@ -59,8 +61,6 @@ Parameters:
             
             
             
-
-
 
 
 

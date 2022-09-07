@@ -11,7 +11,11 @@ from .read.read_id import *
 from .read.read_data import *
 from .read.utils.sw import *
 
-def bsl(ID=None, st_series=None, bsl_series=None, outlier_flag=True, pathname=None, starttime=None, endtime=None, writefile=True, dateformat=None):
+GMT_DATEFORMAT = '%Y-%m-%dT%H:%M'
+MATLAB_DATEFORMAT = '%Y-%m-%d %H:%M'
+
+
+def bsl(ID=None, st_series=None, bsl_series=None, outlier_flag=False, pathname=None, starttime=None, endtime=None, writefile=True, dateformat=None):
     """Calculates baselines for all possible pairs.
 
     It needs:
@@ -125,7 +129,7 @@ def bsl(ID=None, st_series=None, bsl_series=None, outlier_flag=True, pathname=No
                 df_sv_tpr = read_data(beacon,'SV_TPR',pathname=pathname)
                 df_sal = read_data(beacon,'SAL',pathname=pathname)
                 st_series.append(pd.concat([df_ssp, df_prs, df_hrt, df_tpr, df_inc, df_bat, df_pag, df_sv_hrt, df_sv_tpr,df_sal],axis = 1))
-                
+                         
 #-------------------------------------------------------------------------------
 #       Start Baseline Calculation
 #-------------------------------------------------------------------------------
@@ -240,17 +244,10 @@ def bsl(ID=None, st_series=None, bsl_series=None, outlier_flag=True, pathname=No
                     df_bsl.loc[sv_tpr2_check,'bsl_tpr'] = baseline_calc_hmean(df_bsl[sv_tpr2_check]['sv_tpr1'],df_bsl[sv_tpr2_check]['sv_tpr1'],df_bsl[sv_tpr2_check]['range'],df_bsl[sv_tpr2_check]['TAT'])
                     
                     bsl_tpr_sucess = len(df_bsl.loc[pd.notnull(df_bsl['bsl_tpr'])])
-                                        
-                    # calculate traveltime in seconds and store in new column of
-                    # df_bsl
-
-                    # calculate baseline length
-
     #---------------------------------------------------------------------------------------
     #            PRS_DIFF
                     
                     criteria_prs_diff = (df_bsl['prs1']!=0.0) & (df_bsl['prs2']!=0.0)
-                    criteria_prs_diff.to_csv('test' + str(beacon_1) + str(beacon_2))
                     df_bsl.loc[criteria_prs_diff,'prs_diff'] = calc_prs_diff(df_bsl[criteria_prs_diff]['prs1'],df_bsl[criteria_prs_diff]['prs2'])
                     
                     #diff = 1

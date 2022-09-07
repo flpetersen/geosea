@@ -55,7 +55,8 @@ def search_df(df,df2,column,def_val=None,new_column=None,column_num=None):
                 
                 df_tmp = df2[column].dropna()
                 
-                ind = df_tmp.index.get_loc(df.index[i],method='nearest')
+                #ind = df_tmp.index.get_loc(df.index[i],method='nearest') # deprecated
+                ind = df_tmp.index.get_indexer([df.index[i]],method='nearest')[0]
            
                 #,tolerance=pd.tseries.offsets.Second(minmax)
             except KeyError:

@@ -416,8 +416,12 @@ def calc_prs_diff(PRS1,PRS2):
     PRS2_corr = (pd.DataFrame(PRS2[10::]) - pd.DataFrame(PRS2[10::]).mean())/pd.DataFrame(PRS2[10::]).std()
     
     # Reindex of PRS 1 to substract the pressure
-    df_prs1_newindex = PRS1_corr.reindex(PRS2_corr.index).append(PRS1_corr).sort_index()
+    #df_prs1_newindex = PRS1_corr.reindex(PRS2_corr.index).append(PRS1_corr).sort_index() # deprecated
+    df_prs1_newindex = PRS1_corr.reindex(PRS2_corr.index)
+    df_prs1_newindex = pd.concat([df_prs1_newindex,PRS1_corr]).sort_index()
     
+    
+
     # Interpolate the prs data to fit the new index
     prs_interpolate = df_prs1_newindex.interpolate(method ='slinear').rename(columns={"prs1": "prs2"}).drop_duplicates().dropna()
         
