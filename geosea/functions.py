@@ -109,8 +109,6 @@ import pandas as pd # open source, BSD-licensed library providing high-performan
 import matplotlib.pyplot as plt #
 from obspy.geodetics.base import gps2dist_azimuth
 
-import multiprocessing
-
 global GMT_DATEFORMAT # Output date format
 global IN_DATEFORMAT # Input date format
 global PROJECTS # GeoSEA projects
